@@ -14,7 +14,7 @@ const initialCandidates = generateMockCandidates(100);
 export function useCandidates() {
   const [candidates, setCandidates] = useState(initialCandidates);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('priority'); // 'priority' | 'assignment'
+  const [sortBy, setSortBy] = useState('priority'); 
   const [sortOrder, setSortOrder] = useState('desc');
   const [filters, setFilters] = useState({
     assignmentMin: 0,
@@ -23,7 +23,7 @@ export function useCandidates() {
     videoMax: 100,
     atsMin: 0,
     atsMax: 100,
-    status: 'all', // 'all' | 'pending' | 'reviewed' | 'shortlisted' | 'rejected'
+    status: 'all', 
   });
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [compareIds, setCompareIds] = useState([]);
@@ -88,7 +88,7 @@ export function useCandidates() {
       if (prev.includes(id)) {
         return prev.filter((i) => i !== id);
       }
-      if (prev.length >= 3) return prev; // max 3
+      if (prev.length >= 3) return prev;
       return [...prev, id];
     });
   }, []);

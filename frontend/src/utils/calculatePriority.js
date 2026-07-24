@@ -1,18 +1,4 @@
-/**
- * Priority Engine
- *
- * Computes a weighted priority score for a candidate based on their scores.
- *
- * Formula:
- *   Priority Score = (Assignment * 0.30) + (Video * 0.25) + (ATS * 0.20)
- *                  + (GitHub * 0.15) + (Communication * 0.10)
- *
- * Priority Levels:
- *   P0: score >= 85 → Green
- *   P1: 70–84 → Yellow
- *   P2: 50–69 → Orange
- *   P3: < 50  → Red
- */
+
 
 const WEIGHTS = {
   assignment: 0.3,

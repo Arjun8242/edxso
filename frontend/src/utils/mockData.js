@@ -40,7 +40,6 @@ function pickRandom(arr) {
 }
 
 function generateCandidate(id) {
-  // Weighted status distribution: ~40% pending, ~30% reviewed, ~20% shortlisted, ~10% rejected
   const statusRoll = Math.random();
   let status;
   if (statusRoll < 0.4) status = 'pending';

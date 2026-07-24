@@ -1,8 +1,4 @@
-/**
- * PriorityBadge Component
- *
- * Renders a color-coded badge indicating a candidate's priority level.
- */
+
 import { getPriorityColor } from '../utils/calculatePriority';
 
 export default function PriorityBadge({ level, score }) {
