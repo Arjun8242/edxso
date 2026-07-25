@@ -178,3 +178,61 @@ export async function getCandidateById(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * PATCH /api/candidates/:id
+ * Update scores or status for a candidate and recalculate priority.
+ */
+export async function updateCandidateById(req, res, next) {
+  try {
+    const candidateId = parseInt(req.params.id, 10);
+    if (isNaN(candidateId)) {
+      throw new AppError("Candidate ID must be a valid integer", 400);
+    }
+
+    const existing = await pool.query("SELECT * FROM candidates WHERE id = $1", [candidateId]);
+    if (existing.rows.length === 0) {
+      throw new AppError(`Candidate with id ${candidateId} not found`, 404);
+    }
+
+    const current = existing.rows[0];
+    const b = req.body;
+
+    const assignment_score = b.assignment_score !== undefined ? b.assignment_score : (b.assignmentScore !== undefined ? b.assignmentScore : current.assignment_score);
+    const video_score = b.video_score !== undefined ? b.video_score : (b.videoScore !== undefined ? b.videoScore : current.video_score);
+    const ats_score = b.ats_score !== undefined ? b.ats_score : (b.atsScore !== undefined ? b.atsScore : current.ats_score);
+    const github_score = b.github_score !== undefined ? b.github_score : (b.githubScore !== undefined ? b.githubScore : current.github_score);
+    const communication_score = b.communication_score !== undefined ? b.communication_score : (b.communicationScore !== undefined ? b.communicationScore : current.communication_score);
+    const status = b.status || current.status;
+
+    const { score, bucket } = calculatePriority({
+      assignment_score,
+      video_score,
+      ats_score,
+      github_score,
+      communication_score,
+    });
+
+    const updateResult = await pool.query(
+      `UPDATE candidates
+       SET assignment_score = $1,
+           video_score = $2,
+           ats_score = $3,
+           github_score = $4,
+           communication_score = $5,
+           priority_score = $6,
+           priority_bucket = $7,
+           status = $8
+       WHERE id = $9
+       RETURNING *`,
+      [assignment_score, video_score, ats_score, github_score, communication_score, score, bucket, status, candidateId]
+    );
+
+    res.json({
+      success: true,
+      data: updateResult.rows[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+}

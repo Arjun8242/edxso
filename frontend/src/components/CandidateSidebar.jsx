@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, GraduationCap, Code2, Video, FileCheck2, GitBranch, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import PriorityBadge from './PriorityBadge';
 
@@ -111,7 +111,29 @@ function AssignmentEvalTab({ candidate, onUpdate }) {
     { key: 'responsiveness', label: 'Responsiveness' },
     { key: 'accessibilityAwareness', label: 'Accessibility Awareness' },
   ];
-  const handleChange = (key, value) => onUpdate(candidate.id, { assignmentEval: { ...candidate.assignmentEval, [key]: Number(value) } });
+
+  const handleScoreChange = async (key, value) => {
+    const updatedEval = { ...candidate.assignmentEval, [key]: Number(value) };
+    onUpdate(candidate.id, { assignmentEval: updatedEval });
+
+    try {
+      await fetch(`/api/evaluations/${candidate.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ui_quality: Number(updatedEval.uiQuality * 10),
+          state_handling: Number(updatedEval.stateHandling * 10),
+          edge_case_thinking: Number(updatedEval.edgeCaseHandling * 10),
+          architecture_understanding: Number(updatedEval.componentStructure * 10),
+          communication: 80,
+          confidence: 80,
+          accessibility_awareness: Number(updatedEval.accessibilityAwareness * 10),
+        }),
+      });
+    } catch (e) {
+      console.warn('Failed to save evaluation to backend API:', e);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -123,7 +145,7 @@ function AssignmentEvalTab({ candidate, onUpdate }) {
             <span className="text-sm font-medium text-text-primary">{label}</span>
             <span className="rounded-md bg-accent/10 px-2 py-0.5 text-sm font-bold text-accent">{candidate.assignmentEval[key]}</span>
           </div>
-          <input type="range" id={`assignment-eval-${key}`} min={1} max={10} value={candidate.assignmentEval[key]} onChange={(e) => handleChange(key, e.target.value)} className="w-full" />
+          <input type="range" id={`assignment-eval-${key}`} min={1} max={10} value={candidate.assignmentEval[key]} onChange={(e) => handleScoreChange(key, e.target.value)} className="w-full" />
           <div className="mt-1 flex justify-between text-[10px] text-text-muted"><span>1 – Poor</span><span>10 – Excellent</span></div>
         </div>
       ))}
@@ -141,17 +163,71 @@ function VideoEvalTab({ candidate, onUpdate }) {
   ];
   const [noteTimestamp, setNoteTimestamp] = useState('');
   const [noteText, setNoteText] = useState('');
+  const [notes, setNotes] = useState(candidate.videoNotes || []);
+
+  // Fetch candidate notes from backend API
+  useEffect(() => {
+    async function loadNotes() {
+      try {
+        const res = await fetch(`/api/notes/${candidate.id}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mappedNotes = json.data.map((n) => {
+              const match = n.note.match(/^\[(.*?)\]\s*(.*)$/);
+              return {
+                id: n.id,
+                timestamp: match ? match[1] : '0:00',
+                text: match ? match[2] : n.note,
+              };
+            });
+            setNotes(mappedNotes);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load notes from API:', e);
+      }
+    }
+    loadNotes();
+  }, [candidate.id]);
+
   const handleChange = (key, value) => onUpdate(candidate.id, { videoEval: { ...candidate.videoEval, [key]: Number(value) } });
 
-  const addNote = () => {
+  const addNote = async () => {
     if (!noteText.trim()) return;
-    const newNotes = [...(candidate.videoNotes || []), { timestamp: noteTimestamp || '0:00', text: noteText, id: Date.now() }];
+    const ts = noteTimestamp.trim() || '0:00';
+    const noteContent = `[${ts}] ${noteText.trim()}`;
+
+    // Optimistic local add
+    const tempId = Date.now();
+    const newNotes = [...notes, { timestamp: ts, text: noteText.trim(), id: tempId }];
+    setNotes(newNotes);
     onUpdate(candidate.id, { videoNotes: newNotes });
     setNoteTimestamp('');
     setNoteText('');
+
+    // Persist note to backend API
+    try {
+      const res = await fetch(`/api/notes/${candidate.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewer: 'Recruiter', note: noteContent }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setNotes((prev) => prev.map((n) => (n.id === tempId ? { ...n, id: json.data.id } : n)));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to persist note to backend API:', e);
+    }
   };
+
   const removeNote = (noteId) => {
-    onUpdate(candidate.id, { videoNotes: (candidate.videoNotes || []).filter((n) => n.id !== noteId) });
+    const updated = notes.filter((n) => n.id !== noteId);
+    setNotes(updated);
+    onUpdate(candidate.id, { videoNotes: updated });
   };
 
   return (
@@ -179,9 +255,9 @@ function VideoEvalTab({ candidate, onUpdate }) {
             <Plus className="h-4 w-4" />
           </button>
         </div>
-        {(candidate.videoNotes || []).length > 0 && (
+        {notes.length > 0 && (
           <div className="space-y-2">
-            {candidate.videoNotes.map((note) => (
+            {notes.map((note) => (
               <div key={note.id} className="flex items-start gap-3 rounded-lg border border-border bg-surface-light p-3">
                 <span className="shrink-0 rounded bg-purple-500/15 px-2 py-0.5 text-xs font-bold text-purple-400">{note.timestamp}</span>
                 <p className="flex-1 text-sm text-text-secondary">{note.text}</p>

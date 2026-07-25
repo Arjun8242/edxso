@@ -5,6 +5,7 @@ import FilterBar from './components/FilterBar';
 import CandidateList from './components/CandidateList';
 import CandidateSidebar from './components/CandidateSidebar';
 import ComparisonModal from './components/ComparisonModal';
+import AddCandidateModal from './components/AddCandidateModal';
 import { useCandidates } from './hooks/useCandidates';
 import { GitCompareArrows, XCircle } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export default function App() {
     selectedCandidate,
     setSelectedCandidateId,
     updateCandidate,
+    addCandidate,
     compareIds,
     toggleCompare,
     clearCompare,
@@ -30,10 +32,11 @@ export default function App() {
   } = useCandidates();
 
   const [showComparison, setShowComparison] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header />
+      <Header onOpenAddModal={() => setShowAddModal(true)} />
       
       <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8 space-y-8">
         <SummaryCards summary={summary} />
@@ -101,6 +104,13 @@ export default function App() {
           onClose={() => setShowComparison(false)}
         />
       )}
+
+      {/* Add Candidate Modal */}
+      <AddCandidateModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={addCandidate}
+      />
     </div>
   );
 }

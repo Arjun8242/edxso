@@ -1,7 +1,33 @@
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import PriorityBadge from './PriorityBadge';
 
 export default function ComparisonModal({ candidates, onClose }) {
+  const [compareData, setCompareData] = useState(null);
+
+  useEffect(() => {
+    if (!candidates || candidates.length < 2) return;
+    const ids = candidates.map((c) => c.id).join(',');
+    let isMounted = true;
+
+    async function fetchCompare() {
+      try {
+        const res = await fetch(`/api/compare?ids=${ids}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data && isMounted) {
+            setCompareData(json.data.comparison);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch backend comparison stats:', e);
+      }
+    }
+
+    fetchCompare();
+    return () => { isMounted = false; };
+  }, [candidates]);
+
   if (!candidates || candidates.length === 0) return null;
 
   const getWinner = (key) => {
@@ -33,7 +59,14 @@ export default function ComparisonModal({ candidates, onClose }) {
         <div className="flex items-center justify-between border-b border-border p-6">
           <div>
             <h2 className="text-xl font-bold text-text-primary">Candidate Comparison</h2>
-            <p className="text-sm text-text-muted">Comparing {candidates.length} candidates</p>
+            <p className="text-sm text-text-muted">
+              Comparing {candidates.length} candidates
+              {compareData && (
+                <span className="ml-2 text-xs font-semibold text-emerald-400">
+                  (Max Priority Score: {compareData.priority_score?.max})
+                </span>
+              )}
+            </p>
           </div>
           <button onClick={onClose} className="rounded-lg p-2 text-text-muted transition-colors hover:bg-surface-light hover:text-text-primary">
             <X className="h-5 w-5" />

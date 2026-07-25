@@ -2,17 +2,48 @@
  * useCandidates Hook
  *
  * Central state management for the candidate dashboard.
- * Handles: mock data, filtering, sorting, selection, score updates,
- * and comparison mode.
+ * Exclusively loads and manages candidate data from backend APIs.
  */
-import { useState, useMemo, useCallback } from 'react';
-import { generateMockCandidates } from '../utils/mockData';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { calculatePriorityScore, getPriorityLevel } from '../utils/calculatePriority';
 
-const initialCandidates = generateMockCandidates(100);
+function mapBackendCandidate(c) {
+  return {
+    id: c.id,
+    name: c.name,
+    email: c.email || `candidate${c.id}@example.com`,
+    college: c.college,
+    assignmentScore: Number(c.assignment_score ?? c.assignmentScore ?? 50),
+    videoScore: Number(c.video_score ?? c.videoScore ?? 50),
+    atsScore: Number(c.ats_score ?? c.atsScore ?? 50),
+    githubScore: Number(c.github_score ?? c.githubScore ?? 50),
+    communicationScore: Number(c.communication_score ?? c.communicationScore ?? 50),
+    status: c.status || 'pending',
+    assignmentEval: c.assignmentEval || {
+      uiQuality: 7,
+      componentStructure: 8,
+      stateHandling: 7,
+      edgeCaseHandling: 8,
+      responsiveness: 8,
+      accessibilityAwareness: 7,
+    },
+    videoEval: c.videoEval || {
+      clarity: 8,
+      confidence: 7,
+      architectureExplanation: 8,
+      tradeoffReasoning: 7,
+      communicationStrength: 8,
+    },
+    videoNotes: c.videoNotes || [],
+    appliedAt: c.created_at || c.appliedAt || new Date().toISOString(),
+  };
+}
 
 export function useCandidates() {
-  const [candidates, setCandidates] = useState(initialCandidates);
+  const [candidates, setCandidates] = useState([]);
+  const [apiSummary, setApiSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('priority'); 
   const [sortOrder, setSortOrder] = useState('desc');
@@ -27,6 +58,76 @@ export function useCandidates() {
   });
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [compareIds, setCompareIds] = useState([]);
+
+  // Fetch summary metrics
+  const fetchSummary = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard-summary');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setApiSummary({
+            total: json.data.total_candidates,
+            reviewed: json.data.reviewed,
+            shortlisted: json.data.shortlisted,
+            pending: json.data.pending,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to refresh dashboard summary:', e);
+    }
+  }, []);
+
+  // Fetch candidates and dashboard summary from backend API
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [candRes, summaryRes] = await Promise.all([
+          fetch('/api/candidates?limit=100'),
+          fetch('/api/dashboard-summary'),
+        ]);
+
+        if (!candRes.ok || !summaryRes.ok) {
+          throw new Error(`API Error: Candidates status ${candRes.status}, Summary status ${summaryRes.status}`);
+        }
+
+        const candJson = await candRes.json();
+        const summaryJson = await summaryRes.json();
+
+        if (isMounted) {
+          if (candJson.success && Array.isArray(candJson.data)) {
+            setCandidates(candJson.data.map(mapBackendCandidate));
+          }
+          if (summaryJson.success && summaryJson.data) {
+            setApiSummary({
+              total: summaryJson.data.total_candidates,
+              reviewed: summaryJson.data.reviewed,
+              shortlisted: summaryJson.data.shortlisted,
+              pending: summaryJson.data.pending,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching backend candidate API:', err);
+        if (isMounted) {
+          setError(err.message);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+    return () => { isMounted = false; };
+  }, []);
 
   // Enrich candidates with computed priority data
   const enrichedCandidates = useMemo(() => {
@@ -75,12 +176,35 @@ export function useCandidates() {
     return result;
   }, [enrichedCandidates, searchQuery, filters, sortBy, sortOrder]);
 
-  // Update a single candidate's data (for score editing)
-  const updateCandidate = useCallback((id, updates) => {
+  // Update a single candidate's data (optimistic state + backend persistence)
+  const updateCandidate = useCallback(async (id, updates) => {
+    // Optimistic UI update
     setCandidates((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
-  }, []);
+
+    // Backend API persistence
+    try {
+      const res = await fetch(`/api/candidates/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          const serverUpdated = mapBackendCandidate(json.data);
+          setCandidates((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, ...serverUpdated } : c))
+          );
+          fetchSummary();
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to persist update for candidate ${id} to API:`, err);
+    }
+  }, [fetchSummary]);
 
   // Toggle candidate in comparison list (max 3)
   const toggleCompare = useCallback((id) => {
@@ -108,16 +232,40 @@ export function useCandidates() {
 
   // Summary stats
   const summary = useMemo(() => {
+    if (apiSummary) {
+      return apiSummary;
+    }
     const total = enrichedCandidates.length;
     const reviewed = enrichedCandidates.filter((c) => c.status === 'reviewed').length;
     const shortlisted = enrichedCandidates.filter((c) => c.status === 'shortlisted').length;
     const pending = enrichedCandidates.filter((c) => c.status === 'pending').length;
     return { total, reviewed, shortlisted, pending };
-  }, [enrichedCandidates]);
+  }, [enrichedCandidates, apiSummary]);
+
+  // Add a new candidate (POST /api/candidates)
+  const addCandidate = useCallback(async (newCandidateData) => {
+    const res = await fetch('/api/candidates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCandidateData),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.error?.message || json.message || 'Failed to create candidate');
+    }
+
+    const createdCandidate = mapBackendCandidate(json.data);
+    setCandidates((prev) => [createdCandidate, ...prev]);
+    fetchSummary();
+    return createdCandidate;
+  }, [fetchSummary]);
 
   return {
     candidates: filteredCandidates,
     allCandidates: enrichedCandidates,
+    loading,
+    error,
     searchQuery,
     setSearchQuery,
     sortBy,
@@ -130,6 +278,7 @@ export function useCandidates() {
     selectedCandidateId,
     setSelectedCandidateId,
     updateCandidate,
+    addCandidate,
     compareIds,
     toggleCompare,
     clearCompare,
