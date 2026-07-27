@@ -431,45 +431,87 @@ User Actions:
 
 ---
 
-## 🚢 Deployment
+## 🚢 Deployment & Live Links
 
-### Build
-```bash
-npm run build
-```
+### Deployed Services
+* **Backend API Host (Render + Neon)**: `https://edxso.onrender.com`
+* **Live Health Check**: [https://edxso.onrender.com/api/health](https://edxso.onrender.com/api/health)
+* **Candidates Endpoint**: [https://edxso.onrender.com/api/candidates](https://edxso.onrender.com/api/candidates)
+* **Dashboard Summary**: [https://edxso.onrender.com/api/dashboard-summary](https://edxso.onrender.com/api/dashboard-summary)
 
-### Deploy Options
+### Deployment Options
 
-**Vercel (Recommended)**
+#### 1. Backend Deployment (Render + Neon)
+See [deployment_guide.md](file:///C:/Users/arjun/.gemini/antigravity-ide/brain/3d3ef2e9-3bc8-4325-886c-d003228a4de7/deployment_guide.md) for full step-by-step instructions on setting up the Neon Serverless PostgreSQL Database and deploying the Node.js API to Render.
+
+#### 2. Frontend Deployment (Vercel)
 ```bash
 # Install Vercel CLI
 npm i -g vercel
 
-# Deploy
+# Deploy from project root
 vercel
 ```
 
-**Netlify**
-- Connect GitHub repo to Netlify
-- Auto-deploys on push to main branch
-
-**Docker**
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package.json .
-RUN npm install
-COPY . .
-RUN npm run build
-EXPOSE 5173
-CMD ["npm", "run", "preview"]
-```
+#### 3. Frontend Deployment (Netlify)
+* Connect your GitHub repo to Netlify.
+* Configure the build command as `npm run build` and publish directory as `dist`.
+* Set environment variable `VITE_API_URL` to `https://edxso.onrender.com` to point to the live backend.
 
 ---
 
 ## 🧪 Testing
 
-### Manual Testing Checklist
+### 1. Automated Unit Tests
+Automated tests cover the scoring algorithm and priority bucket assignment thresholds.
+```bash
+# Run from the backend directory
+cd backend
+node --test tests/priorityEngine.test.js
+```
+
+### 2. API Manual Testing Guide
+The backend API can be tested using standard `cURL` commands pointing to either your local server (`http://localhost:5000`) or the live Render server (`https://edxso.onrender.com`).
+
+A full, detailed API testing document containing payload formats, PowerShell alternatives, and Node.js one-liners is available at [backend/API_TESTING_GUIDE.md](file:///c:/Users/arjun/Downloads/assignment-4/backend/API_TESTING_GUIDE.md).
+
+#### Quick cURL Cheat Sheet (Live Endpoint Testing):
+* **Health Check**:
+  ```bash
+  curl.exe -s https://edxso.onrender.com/api/health
+  ```
+* **Dashboard Summary**:
+  ```bash
+  curl.exe -s https://edxso.onrender.com/api/dashboard-summary
+  ```
+* **List Candidates (Paginated & Filtered)**:
+  ```bash
+  curl.exe -s "https://edxso.onrender.com/api/candidates?page=1&page_size=2&assignment_score=>80"
+  ```
+* **Create Candidate**:
+  ```bash
+  curl.exe -X POST https://edxso.onrender.com/api/candidates \
+    -H "Content-Type: application/json" \
+    -d "{\"name\":\"Test Candidate\",\"assignment_score\":85,\"video_score\":90,\"ats_score\":75,\"github_score\":80,\"communication_score\":85}"
+  ```
+* **Create Evaluation**:
+  ```bash
+  curl.exe -X POST https://edxso.onrender.com/api/evaluations/1 \
+    -H "Content-Type: application/json" \
+    -d "{\"ui_quality\":80,\"state_handling\":85,\"edge_case_thinking\":90,\"architecture_understanding\":85,\"communication\":80,\"confidence\":85,\"accessibility_awareness\":80}"
+  ```
+* **Add Reviewer Note**:
+  ```bash
+  curl.exe -X POST https://edxso.onrender.com/api/candidates/1/notes \
+    -H "Content-Type: application/json" \
+    -d "{\"reviewer\":\"CTO Office\",\"note\":\"Excellent depth of technical understanding.\"}"
+  ```
+* **Compare Candidates**:
+  ```bash
+  curl.exe -s "https://edxso.onrender.com/api/compare?ids=1,2"
+  ```
+
+### 3. Frontend UI Manual Testing Checklist
 - [ ] Search filters candidates by name
 - [ ] Score range filters work correctly
 - [ ] Status filter shows only selected status
