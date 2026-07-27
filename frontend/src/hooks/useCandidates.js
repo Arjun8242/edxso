@@ -1,9 +1,3 @@
-/**
- * useCandidates Hook
- *
- * Central state management for the candidate dashboard.
- * Exclusively loads and manages candidate data from backend APIs.
- */
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { calculatePriorityScore, getPriorityLevel } from '../utils/calculatePriority';
 
@@ -45,7 +39,7 @@ export function useCandidates() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('priority'); 
+  const [sortBy, setSortBy] = useState('priority');
   const [sortOrder, setSortOrder] = useState('desc');
   const [filters, setFilters] = useState({
     assignmentMin: 0,
@@ -54,12 +48,11 @@ export function useCandidates() {
     videoMax: 100,
     atsMin: 0,
     atsMax: 100,
-    status: 'all', 
+    status: 'all',
   });
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [compareIds, setCompareIds] = useState([]);
 
-  // Fetch summary metrics
   const fetchSummary = useCallback(async () => {
     try {
       const res = await fetch('/api/dashboard-summary');
@@ -79,7 +72,6 @@ export function useCandidates() {
     }
   }, []);
 
-  // Fetch candidates and dashboard summary from backend API
   useEffect(() => {
     let isMounted = true;
 
@@ -129,7 +121,6 @@ export function useCandidates() {
     return () => { isMounted = false; };
   }, []);
 
-  // Enrich candidates with computed priority data
   const enrichedCandidates = useMemo(() => {
     return candidates.map((c) => {
       const priorityScore = calculatePriorityScore(c);
@@ -138,17 +129,14 @@ export function useCandidates() {
     });
   }, [candidates]);
 
-  // Apply search + filters + sorting
   const filteredCandidates = useMemo(() => {
     let result = enrichedCandidates;
 
-    // Search by name
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((c) => c.name.toLowerCase().includes(q));
     }
 
-    // Filters
     result = result.filter(
       (c) =>
         c.assignmentScore >= filters.assignmentMin &&
@@ -160,7 +148,6 @@ export function useCandidates() {
         (filters.status === 'all' || c.status === filters.status)
     );
 
-    // Sorting
     result = [...result].sort((a, b) => {
       let aVal, bVal;
       if (sortBy === 'priority') {
@@ -176,14 +163,12 @@ export function useCandidates() {
     return result;
   }, [enrichedCandidates, searchQuery, filters, sortBy, sortOrder]);
 
-  // Update a single candidate's data (optimistic state + backend persistence)
   const updateCandidate = useCallback(async (id, updates) => {
-    // Optimistic UI update
+
     setCandidates((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
 
-    // Backend API persistence
     try {
       const res = await fetch(`/api/candidates/${id}`, {
         method: 'PATCH',
@@ -206,7 +191,6 @@ export function useCandidates() {
     }
   }, [fetchSummary]);
 
-  // Toggle candidate in comparison list (max 3)
   const toggleCompare = useCallback((id) => {
     setCompareIds((prev) => {
       if (prev.includes(id)) {
@@ -219,18 +203,15 @@ export function useCandidates() {
 
   const clearCompare = useCallback(() => setCompareIds([]), []);
 
-  // Get the selected candidate object
   const selectedCandidate = useMemo(() => {
     if (!selectedCandidateId) return null;
     return enrichedCandidates.find((c) => c.id === selectedCandidateId) || null;
   }, [selectedCandidateId, enrichedCandidates]);
 
-  // Get comparison candidates
   const compareCandidates = useMemo(() => {
     return enrichedCandidates.filter((c) => compareIds.includes(c.id));
   }, [compareIds, enrichedCandidates]);
 
-  // Summary stats
   const summary = useMemo(() => {
     if (apiSummary) {
       return apiSummary;
@@ -242,7 +223,6 @@ export function useCandidates() {
     return { total, reviewed, shortlisted, pending };
   }, [enrichedCandidates, apiSummary]);
 
-  // Add a new candidate (POST /api/candidates)
   const addCandidate = useCallback(async (newCandidateData) => {
     const res = await fetch('/api/candidates', {
       method: 'POST',

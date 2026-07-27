@@ -4,13 +4,11 @@ import { createNote, getNotesByCandidate } from "../controllers/noteController.j
 
 const router = Router();
 
-// Candidate CRUD
 router.post("/", createCandidate);
 router.get("/", getCandidates);
 router.get("/:id", getCandidateById);
 router.patch("/:id", updateCandidateById);
 
-// Notes nested under candidates (PRD §6.7)
 router.post("/:id/notes", createNote);
 router.get("/:id/notes", getNotesByCandidate);
 

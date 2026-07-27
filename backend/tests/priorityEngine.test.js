@@ -1,9 +1,3 @@
-/**
- * Unit tests for the priority scoring engine.
- * PRD §9: "Unit tests at minimum for the scoring function and bucket assignment"
- *
- * Run with: node --test tests/priorityEngine.test.js
- */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { calculatePriority } from "../src/utils/priorityEngine.js";
@@ -34,7 +28,7 @@ describe("calculatePriority", () => {
   });
 
   it("should apply correct weights: 0.30 + 0.25 + 0.20 + 0.15 + 0.10 = 1.00", () => {
-    // Verify weights sum to 1.0 by using all-equal scores
+
     const score = 80;
     const result = calculatePriority({
       assignment_score: score,
@@ -47,7 +41,7 @@ describe("calculatePriority", () => {
   });
 
   it("should compute correct score with mixed inputs", () => {
-    // 90*0.30 + 80*0.25 + 70*0.20 + 60*0.15 + 50*0.10 = 27 + 20 + 14 + 9 + 5 = 75
+
     const result = calculatePriority({
       assignment_score: 90,
       video_score: 80,
@@ -72,7 +66,7 @@ describe("calculatePriority", () => {
   });
 
   it("should assign P0 at boundary score = 85", () => {
-    // Need exactly 85: 85*1.00 = 85
+
     const result = calculatePriority({
       assignment_score: 85,
       video_score: 85,
@@ -145,7 +139,7 @@ describe("calculatePriority", () => {
   });
 
   it("should assign P3 at boundary score = 49.99", () => {
-    // 49*0.30 + 50*0.25 + 50*0.20 + 50*0.15 + 50*0.10 = 14.7 + 12.5 + 10 + 7.5 + 5 = 49.7
+
     const result = calculatePriority({
       assignment_score: 49,
       video_score: 50,
@@ -165,8 +159,7 @@ describe("calculatePriority", () => {
       github_score: 68.2,
       communication_score: 55.9,
     });
-    // 85.5*0.30 + 72.3*0.25 + 91.7*0.20 + 68.2*0.15 + 55.9*0.10
-    // = 25.65 + 18.075 + 18.34 + 10.23 + 5.59 = 77.885 → 77.89
+
     assert.equal(result.score, 77.89);
     assert.equal(result.bucket, "P1");
   });

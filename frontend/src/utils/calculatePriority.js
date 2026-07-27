@@ -1,5 +1,3 @@
-
-
 const WEIGHTS = {
   assignment: 0.3,
   video: 0.25,

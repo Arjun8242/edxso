@@ -1,8 +1,3 @@
-/**
- * FilterBar Component
- *
- * Provides search, score range filters, status filter, and sorting controls.
- */
 import { useState } from 'react';
 import { Search, SlidersHorizontal, ArrowUpDown, ChevronDown, ChevronUp, X } from 'lucide-react';
 
@@ -47,9 +42,9 @@ export default function FilterBar({
 
   return (
     <div className="space-y-3">
-      {/* Top row: Search + Toggle Filters + Sort */}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        {/* Search */}
+
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
@@ -62,7 +57,6 @@ export default function FilterBar({
           />
         </div>
 
-        {/* Toggle filters */}
         <button
           id="toggle-filters-btn"
           onClick={() => setShowFilters((v) => !v)}
@@ -81,7 +75,6 @@ export default function FilterBar({
           )}
         </button>
 
-        {/* Sort controls */}
         <div className="flex items-center gap-2">
           <ArrowUpDown className="h-4 w-4 text-text-muted" />
           <select
@@ -103,7 +96,6 @@ export default function FilterBar({
         </div>
       </div>
 
-      {/* Expanded filters panel */}
       {showFilters && (
         <div className="rounded-2xl border border-border bg-surface-card p-5 animate-in fade-in duration-200">
           <div className="mb-4 flex items-center justify-between">
@@ -121,7 +113,7 @@ export default function FilterBar({
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Assignment Range */}
+
             <RangeFilter
               label="Assignment Score"
               min={filters.assignmentMin}
@@ -129,7 +121,7 @@ export default function FilterBar({
               onMinChange={(v) => handleRangeChange('assignmentMin', v)}
               onMaxChange={(v) => handleRangeChange('assignmentMax', v)}
             />
-            {/* Video Range */}
+
             <RangeFilter
               label="Video Score"
               min={filters.videoMin}
@@ -137,7 +129,7 @@ export default function FilterBar({
               onMinChange={(v) => handleRangeChange('videoMin', v)}
               onMaxChange={(v) => handleRangeChange('videoMax', v)}
             />
-            {/* ATS Range */}
+
             <RangeFilter
               label="ATS Score"
               min={filters.atsMin}
@@ -145,7 +137,7 @@ export default function FilterBar({
               onMinChange={(v) => handleRangeChange('atsMin', v)}
               onMaxChange={(v) => handleRangeChange('atsMax', v)}
             />
-            {/* Status Filter */}
+
             <div>
               <label className="mb-2 block text-xs font-medium text-text-secondary">
                 Review Status
@@ -172,9 +164,6 @@ export default function FilterBar({
   );
 }
 
-/**
- * RangeFilter – reusable min/max slider pair
- */
 function RangeFilter({ label, min, max, onMinChange, onMaxChange }) {
   return (
     <div>

@@ -1,4 +1,3 @@
-
 import { getPriorityColor } from '../utils/calculatePriority';
 
 export default function PriorityBadge({ level, score }) {

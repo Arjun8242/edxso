@@ -16,7 +16,7 @@ export default function CandidateSidebar({ candidate, onClose, onUpdate }) {
     <>
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l border-border bg-surface shadow-2xl shadow-black/30">
-        {/* Header */}
+
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white">
@@ -32,7 +32,6 @@ export default function CandidateSidebar({ candidate, onClose, onUpdate }) {
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 border-b border-border px-6 pt-2">
           {tabs.map((tab) => (
             <button key={tab.id} id={`sidebar-tab-${tab.id}`} onClick={() => setActiveTab(tab.id)}
@@ -42,7 +41,6 @@ export default function CandidateSidebar({ candidate, onClose, onUpdate }) {
           ))}
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'overview' && <OverviewTab candidate={candidate} onUpdate={onUpdate} />}
           {activeTab === 'assignment' && <AssignmentEvalTab candidate={candidate} onUpdate={onUpdate} />}
@@ -165,7 +163,6 @@ function VideoEvalTab({ candidate, onUpdate }) {
   const [noteText, setNoteText] = useState('');
   const [notes, setNotes] = useState(candidate.videoNotes || []);
 
-  // Fetch candidate notes from backend API
   useEffect(() => {
     async function loadNotes() {
       try {
@@ -198,7 +195,6 @@ function VideoEvalTab({ candidate, onUpdate }) {
     const ts = noteTimestamp.trim() || '0:00';
     const noteContent = `[${ts}] ${noteText.trim()}`;
 
-    // Optimistic local add
     const tempId = Date.now();
     const newNotes = [...notes, { timestamp: ts, text: noteText.trim(), id: tempId }];
     setNotes(newNotes);
@@ -206,7 +202,6 @@ function VideoEvalTab({ candidate, onUpdate }) {
     setNoteTimestamp('');
     setNoteText('');
 
-    // Persist note to backend API
     try {
       const res = await fetch(`/api/candidates/${candidate.id}/notes`, {
         method: 'POST',

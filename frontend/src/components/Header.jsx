@@ -1,8 +1,3 @@
-/**
- * Header Component
- *
- * Top bar with logo/title.
- */
 import { LayoutDashboard, UserPlus } from 'lucide-react';
 
 export default function Header({ onOpenAddModal }) {

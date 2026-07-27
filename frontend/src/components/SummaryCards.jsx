@@ -1,9 +1,3 @@
-/**
- * SummaryCards Component
- *
- * Displays dashboard overview statistics:
- * Total, Reviewed, Shortlisted, and Pending candidate counts.
- */
 import { Users, CheckCircle, Star, Clock } from 'lucide-react';
 
 const cards = [
@@ -21,7 +15,7 @@ export default function SummaryCards({ summary }) {
           key={key}
           className="group relative overflow-hidden rounded-2xl border border-border/60 bg-surface-card p-5 transition-all duration-300 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5"
         >
-          {/* Gradient glow */}
+
           <div
             className={`absolute -right-4 -top-4 h-20 w-20 rounded-full bg-gradient-to-br ${gradient} opacity-15 blur-2xl transition-all duration-300 group-hover:opacity-25`}
           />

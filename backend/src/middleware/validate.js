@@ -1,11 +1,7 @@
 import AppError from "../utils/AppError.js";
 
-/**
- * Validates a single candidate object for creation.
- * Throws AppError if any field is invalid.
- */
 export function validateCandidate(data) {
-  // name is required
+
   if (data.name === undefined || data.name === null) {
     throw new AppError("Missing required field: name", 400, "MISSING_FIELD", "name");
   }
@@ -19,7 +15,6 @@ export function validateCandidate(data) {
     }
   }
 
-  // All 5 score fields are required and must be numbers 0–100 (float allowed per PRD §4.1)
   const scoreFields = ["assignment_score", "video_score", "ats_score", "github_score", "communication_score"];
   const missingScores = scoreFields.filter((field) => data[field] === undefined || data[field] === null);
   if (missingScores.length > 0) {
@@ -39,10 +34,6 @@ export function validateCandidate(data) {
   }
 }
 
-/**
- * Validates evaluation fields.
- * Throws AppError if any field is invalid.
- */
 export function validateEvaluation(data) {
   const required = [
     "ui_quality", "state_handling", "edge_case_thinking",
@@ -68,10 +59,6 @@ export function validateEvaluation(data) {
   }
 }
 
-/**
- * Validates a note object.
- * Throws AppError if any field is invalid.
- */
 export function validateNote(data) {
   if (!data.reviewer || typeof data.reviewer !== "string" || data.reviewer.trim().length === 0) {
     throw new AppError("'reviewer' must be a non-empty string", 400, "INVALID_INPUT", "reviewer");
@@ -82,8 +69,6 @@ export function validateNote(data) {
   }
 }
 
-// ── Operator-based filter fields (PRD §6.2) ──────────────────────────
-// Supports: field=value, field>value, field<value, field>=value, field<=value
 const FILTERABLE_SCORE_FIELDS = [
   "assignment_score",
   "video_score",
@@ -99,11 +84,6 @@ const ALLOWED_QUERY_PARAMS = new Set([
   ...FILTERABLE_SCORE_FIELDS,
 ]);
 
-/**
- * Parse operator-based filter value.
- * Accepts: "70", ">70", "<70", ">=70", "<=70"
- * Returns { operator: string, value: number } or null if not a filter.
- */
 function parseFilterOperator(raw) {
   if (raw === undefined || raw === null) return null;
   const str = String(raw).trim();
@@ -118,16 +98,9 @@ function parseFilterOperator(raw) {
   return { operator, value };
 }
 
-/**
- * Validates and sanitizes query parameters for GET /candidates.
- * PRD §6.2: page/page_size pagination, operator-based numeric filters,
- * exact match for status/college, sort_by/order.
- * Rejects unknown query params with 400.
- */
 export function validateQueryParams(query) {
   const result = {};
 
-  // Reject unknown query params per PRD §6.2
   for (const key of Object.keys(query)) {
     if (!ALLOWED_QUERY_PARAMS.has(key)) {
       throw new AppError(
@@ -139,7 +112,6 @@ export function validateQueryParams(query) {
     }
   }
 
-  // ── Pagination (PRD §6.2: page / page_size) ──
   if (query.page_size !== undefined) {
     const pageSize = parseInt(query.page_size, 10);
     if (isNaN(pageSize) || pageSize < 1 || pageSize > 100) {
@@ -160,7 +132,6 @@ export function validateQueryParams(query) {
     result.page = 1;
   }
 
-  // ── Operator-based numeric filters (PRD §6.2) ──
   result.filters = [];
   for (const field of FILTERABLE_SCORE_FIELDS) {
     if (query[field] !== undefined) {
@@ -179,7 +150,6 @@ export function validateQueryParams(query) {
     }
   }
 
-  // ── Exact-match filters ──
   if (query.status !== undefined) {
     const allowed = ["pending", "reviewed", "shortlisted"];
     if (!allowed.includes(query.status)) {
@@ -200,7 +170,6 @@ export function validateQueryParams(query) {
     result.college = query.college.trim();
   }
 
-  // ── Sorting ──
   const allowedSortFields = ["priority_score", "assignment_score", "created_at", "name"];
   if (query.sort_by !== undefined) {
     if (!allowedSortFields.includes(query.sort_by)) {

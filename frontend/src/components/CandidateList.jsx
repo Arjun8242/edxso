@@ -1,13 +1,6 @@
-/**
- * CandidateList Component
- *
- * Renders the main data table of candidates with priority badges,
- * score columns, status, and action buttons for comparison/detail view.
- */
 import { GitCompareArrows, Eye, UserSearch } from 'lucide-react';
 import PriorityBadge from './PriorityBadge';
 
-// Status badge styles
 const statusStyles = {
   pending: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   reviewed: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
@@ -62,7 +55,7 @@ export default function CandidateList({
                     isComparing ? 'bg-accent/5' : ''
                   }`}
                 >
-                  {/* Compare checkbox */}
+
                   <td className="px-4 py-3 text-center">
                     <button
                       id={`compare-btn-${candidate.id}`}
@@ -81,7 +74,6 @@ export default function CandidateList({
                     </button>
                   </td>
 
-                  {/* Name */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white">
@@ -97,19 +89,16 @@ export default function CandidateList({
                     </div>
                   </td>
 
-                  {/* College */}
                   <td className="px-4 py-3 text-text-secondary text-xs max-w-[150px] truncate">
                     {candidate.college}
                   </td>
 
-                  {/* Scores */}
                   <ScoreCell value={candidate.assignmentScore} />
                   <ScoreCell value={candidate.videoScore} />
                   <ScoreCell value={candidate.atsScore} />
                   <ScoreCell value={candidate.githubScore} />
                   <ScoreCell value={candidate.communicationScore} />
 
-                  {/* Priority */}
                   <td className="px-4 py-3">
                     <PriorityBadge
                       level={candidate.priorityLevel}
@@ -117,7 +106,6 @@ export default function CandidateList({
                     />
                   </td>
 
-                  {/* Status */}
                   <td className="px-4 py-3">
                     <span
                       className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${
@@ -128,7 +116,6 @@ export default function CandidateList({
                     </span>
                   </td>
 
-                  {/* View Detail */}
                   <td className="px-4 py-3 text-center">
                     <button
                       id={`view-detail-btn-${candidate.id}`}
@@ -149,11 +136,8 @@ export default function CandidateList({
   );
 }
 
-/**
- * ScoreCell – Renders a score with a color gradient from red to green.
- */
 function ScoreCell({ value }) {
-  const hue = (value / 100) * 120; // 0=red, 120=green
+  const hue = (value / 100) * 120;
   return (
     <td className="px-4 py-3 text-center">
       <span

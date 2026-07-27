@@ -3,10 +3,6 @@ import AppError from "../utils/AppError.js";
 import { calculatePriority } from "../utils/priorityEngine.js";
 import { validateCandidate, validateQueryParams } from "../middleware/validate.js";
 
-/**
- * POST /api/candidates
- * Create one or more candidates (single object or array).
- */
 export async function createCandidate(req, res, next) {
   try {
     const input = Array.isArray(req.body) ? req.body : [req.body];
@@ -15,7 +11,6 @@ export async function createCandidate(req, res, next) {
       throw new AppError("Request body must contain at least one candidate", 400, "EMPTY_BODY");
     }
 
-    // Validate all candidates before inserting any (all-or-nothing per PRD §6.1)
     input.forEach((candidate, index) => {
       try {
         validateCandidate(candidate);
@@ -60,12 +55,6 @@ export async function createCandidate(req, res, next) {
   }
 }
 
-/**
- * GET /api/candidates
- * List candidates with page/page_size pagination,
- * operator-based filtering, and sorting.
- * PRD §6.2
- */
 export async function getCandidates(req, res, next) {
   try {
     const params = validateQueryParams(req.query);
@@ -73,14 +62,12 @@ export async function getCandidates(req, res, next) {
     const conditions = [];
     let paramIndex = 1;
 
-    // ── Operator-based numeric filters (PRD §6.2) ──
     for (const filter of params.filters) {
       conditions.push(`${filter.field} ${filter.operator} $${paramIndex}`);
       values.push(filter.value);
       paramIndex++;
     }
 
-    // ── Exact-match filters ──
     if (params.status) {
       conditions.push(`status = $${paramIndex}`);
       values.push(params.status);
@@ -102,12 +89,10 @@ export async function getCandidates(req, res, next) {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const sortClause = `ORDER BY ${params.sort_by} ${params.order.toUpperCase()}, id ${params.order.toUpperCase()}`;
 
-    // ── Total count (PRD §6.2: "Response includes total count") ──
     const countQuery = `SELECT COUNT(*) AS total FROM candidates ${whereClause}`;
     const countResult = await pool.query(countQuery, values.slice(0, paramIndex - 1));
     const total = parseInt(countResult.rows[0].total, 10);
 
-    // ── Page/page_size pagination (PRD §6.2) ──
     const offset = (params.page - 1) * params.page_size;
     const limitClause = `LIMIT $${paramIndex}`;
     values.push(params.page_size);
@@ -136,12 +121,6 @@ export async function getCandidates(req, res, next) {
   }
 }
 
-/**
- * GET /api/candidates/:id
- * Get a single candidate, optionally with evaluations and notes.
- * PRD §6.3: "Returns candidate + optionally embedded latest evaluation
- *            and notes (via ?include=evaluations,notes)"
- */
 export async function getCandidateById(req, res, next) {
   try {
     const { id } = req.params;
@@ -159,7 +138,6 @@ export async function getCandidateById(req, res, next) {
 
     const data = { ...candidateResult.rows[0] };
 
-    // Parse ?include= param (PRD §6.3)
     const include = req.query.include
       ? req.query.include.split(",").map((s) => s.trim().toLowerCase())
       : [];
@@ -189,10 +167,6 @@ export async function getCandidateById(req, res, next) {
   }
 }
 
-/**
- * PATCH /api/candidates/:id
- * Update scores or status for a candidate and recalculate priority.
- */
 export async function updateCandidateById(req, res, next) {
   try {
     const candidateId = parseInt(req.params.id, 10);
@@ -215,7 +189,6 @@ export async function updateCandidateById(req, res, next) {
     const communication_score = b.communication_score !== undefined ? b.communication_score : (b.communicationScore !== undefined ? b.communicationScore : current.communication_score);
     const status = b.status || current.status;
 
-    // Ensure numeric conversion from NUMERIC columns
     const { score, bucket } = calculatePriority({
       assignment_score: Number(assignment_score),
       video_score: Number(video_score),

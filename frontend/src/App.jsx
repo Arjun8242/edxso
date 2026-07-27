@@ -37,15 +37,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-surface">
       <Header onOpenAddModal={() => setShowAddModal(true)} />
-      
+
       <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8 space-y-8">
         <SummaryCards summary={summary} />
-        
+
         <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface-card p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold text-text-primary">Candidate Roster</h2>
-            
-            {/* Compare Action Bar */}
+
             {compareIds.length > 0 && (
               <div className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 px-4 py-2 animate-in fade-in zoom-in-95">
                 <span className="text-sm font-medium text-accent">
@@ -80,7 +79,7 @@ export default function App() {
             sortOrder={sortOrder}
             setSortOrder={setSortOrder}
           />
-          
+
           <CandidateList
             candidates={candidates}
             onSelect={setSelectedCandidateId}
@@ -90,14 +89,12 @@ export default function App() {
         </div>
       </main>
 
-      {/* Detail Sidebar */}
       <CandidateSidebar
         candidate={selectedCandidate}
         onClose={() => setSelectedCandidateId(null)}
         onUpdate={updateCandidate}
       />
 
-      {/* Comparison Modal */}
       {showComparison && (
         <ComparisonModal
           candidates={compareCandidates}
@@ -105,7 +102,6 @@ export default function App() {
         />
       )}
 
-      {/* Add Candidate Modal */}
       <AddCandidateModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}

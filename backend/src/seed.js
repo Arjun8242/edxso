@@ -1,9 +1,3 @@
-/**
- * Seed script — generates 100 candidates with randomized data,
- * evaluations (~60%), and notes (~40%).
- * PRD §8: Normal distribution ~65, evaluations+notes seeding, idempotent.
- * Run with: npm run seed
- */
 import "dotenv/config";
 import pool from "./config/db.js";
 import initDb from "./config/initDb.js";
@@ -51,15 +45,10 @@ const sampleNotes = [
   "Strong problem-solving skills demonstrated in assignment.",
 ];
 
-/**
- * Generate a normally distributed random number centered at mean with given stddev,
- * clipped to [min, max]. Uses Box-Muller transform.
- * PRD §8: "normal distribution centered ~65, clipped to [0,100]"
- */
 function normalRandom(mean = 65, stddev = 15, min = 0, max = 100) {
   let u1 = Math.random();
   let u2 = Math.random();
-  // Avoid log(0)
+
   while (u1 === 0) u1 = Math.random();
   const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
   const value = mean + z * stddev;
@@ -125,10 +114,8 @@ async function seed() {
   try {
     console.log("🌱 Starting seed...\n");
 
-    // Initialize tables
     await initDb();
 
-    // Clear existing data (idempotent per PRD §8)
     await pool.query("DELETE FROM notes");
     await pool.query("DELETE FROM evaluations");
     await pool.query("DELETE FROM candidates");
@@ -137,7 +124,6 @@ async function seed() {
     await pool.query("ALTER SEQUENCE notes_id_seq RESTART WITH 1");
     console.log("🗑️  Cleared existing data\n");
 
-    // Generate and insert 100 candidates
     const candidateIds = [];
     for (let i = 0; i < 100; i++) {
       const c = generateCandidate();
@@ -163,7 +149,6 @@ async function seed() {
 
     console.log(`✅ Inserted ${candidateIds.length} candidates\n`);
 
-    // PRD §8: Attach evaluations to ~60% of candidates
     let evalCount = 0;
     for (const id of candidateIds) {
       if (Math.random() < 0.6) {
@@ -179,7 +164,6 @@ async function seed() {
 
     console.log(`✅ Inserted ${evalCount} evaluations (~${Math.round(evalCount / candidateIds.length * 100)}% of candidates)\n`);
 
-    // PRD §8: Attach notes to ~40% of candidates
     let noteCount = 0;
     for (const id of candidateIds) {
       if (Math.random() < 0.4) {
@@ -196,7 +180,6 @@ async function seed() {
 
     console.log(`✅ Inserted ${noteCount} notes\n`);
 
-    // Print summary
     const summary = await pool.query(`
       SELECT
         priority_bucket,
