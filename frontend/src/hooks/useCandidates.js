@@ -68,9 +68,9 @@ export function useCandidates() {
         if (json.success && json.data) {
           setApiSummary({
             total: json.data.total_candidates,
-            reviewed: json.data.reviewed,
-            shortlisted: json.data.shortlisted,
-            pending: json.data.pending,
+            reviewed: json.data.reviewed_count,
+            shortlisted: json.data.shortlisted_count,
+            pending: json.data.pending_count,
           });
         }
       }
@@ -89,7 +89,7 @@ export function useCandidates() {
         setError(null);
 
         const [candRes, summaryRes] = await Promise.all([
-          fetch('/api/candidates?limit=100'),
+          fetch('/api/candidates?page_size=100'),
           fetch('/api/dashboard-summary'),
         ]);
 
@@ -107,9 +107,9 @@ export function useCandidates() {
           if (summaryJson.success && summaryJson.data) {
             setApiSummary({
               total: summaryJson.data.total_candidates,
-              reviewed: summaryJson.data.reviewed,
-              shortlisted: summaryJson.data.shortlisted,
-              pending: summaryJson.data.pending,
+              reviewed: summaryJson.data.reviewed_count,
+              shortlisted: summaryJson.data.shortlisted_count,
+              pending: summaryJson.data.pending_count,
             });
           }
         }

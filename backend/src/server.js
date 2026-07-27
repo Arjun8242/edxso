@@ -9,7 +9,6 @@ import candidatesRouter from "./routes/candidates.js";
 import evaluationsRouter from "./routes/evaluations.js";
 import compareRouter from "./routes/compare.js";
 import dashboardRouter from "./routes/dashboard.js";
-import notesRouter from "./routes/notes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,7 +22,6 @@ app.use("/api/candidates", candidatesRouter);
 app.use("/api/evaluations", evaluationsRouter);
 app.use("/api/compare", compareRouter);
 app.use("/api/dashboard-summary", dashboardRouter);
-app.use("/api/notes", notesRouter);
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -33,10 +31,9 @@ app.get("/api/health", (req, res) => {
 // 404 handler for unknown routes
 app.use((req, res) => {
   res.status(404).json({
-    success: false,
     error: {
+      code: "ROUTE_NOT_FOUND",
       message: `Route ${req.method} ${req.originalUrl} not found`,
-      statusCode: 404,
     },
   });
 });

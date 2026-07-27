@@ -169,7 +169,7 @@ function VideoEvalTab({ candidate, onUpdate }) {
   useEffect(() => {
     async function loadNotes() {
       try {
-        const res = await fetch(`/api/notes/${candidate.id}`);
+        const res = await fetch(`/api/candidates/${candidate.id}/notes`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && Array.isArray(json.data)) {
@@ -208,7 +208,7 @@ function VideoEvalTab({ candidate, onUpdate }) {
 
     // Persist note to backend API
     try {
-      const res = await fetch(`/api/notes/${candidate.id}`, {
+      const res = await fetch(`/api/candidates/${candidate.id}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewer: 'Recruiter', note: noteContent }),

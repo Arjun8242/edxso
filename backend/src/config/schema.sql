@@ -2,12 +2,12 @@
 CREATE TABLE IF NOT EXISTS candidates (
   id              SERIAL PRIMARY KEY,
   name            VARCHAR(255) NOT NULL,
-  college         VARCHAR(255) NOT NULL,
-  assignment_score INTEGER NOT NULL CHECK (assignment_score >= 0 AND assignment_score <= 100),
-  video_score     INTEGER NOT NULL CHECK (video_score >= 0 AND video_score <= 100),
-  ats_score       INTEGER NOT NULL CHECK (ats_score >= 0 AND ats_score <= 100),
-  github_score    INTEGER NOT NULL CHECK (github_score >= 0 AND github_score <= 100),
-  communication_score INTEGER NOT NULL CHECK (communication_score >= 0 AND communication_score <= 100),
+  college         VARCHAR(255),
+  assignment_score NUMERIC(5,2) NOT NULL CHECK (assignment_score >= 0 AND assignment_score <= 100),
+  video_score     NUMERIC(5,2) NOT NULL CHECK (video_score >= 0 AND video_score <= 100),
+  ats_score       NUMERIC(5,2) NOT NULL CHECK (ats_score >= 0 AND ats_score <= 100),
+  github_score    NUMERIC(5,2) NOT NULL CHECK (github_score >= 0 AND github_score <= 100),
+  communication_score NUMERIC(5,2) NOT NULL CHECK (communication_score >= 0 AND communication_score <= 100),
   priority_score  NUMERIC(5,2) NOT NULL DEFAULT 0,
   priority_bucket VARCHAR(2) NOT NULL DEFAULT 'P3',
   status          VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -41,5 +41,10 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE INDEX IF NOT EXISTS idx_candidates_status ON candidates(status);
 CREATE INDEX IF NOT EXISTS idx_candidates_priority_bucket ON candidates(priority_bucket);
 CREATE INDEX IF NOT EXISTS idx_candidates_priority_score ON candidates(priority_score DESC);
+CREATE INDEX IF NOT EXISTS idx_candidates_assignment_score ON candidates(assignment_score);
+CREATE INDEX IF NOT EXISTS idx_candidates_video_score ON candidates(video_score);
+CREATE INDEX IF NOT EXISTS idx_candidates_ats_score ON candidates(ats_score);
+CREATE INDEX IF NOT EXISTS idx_candidates_github_score ON candidates(github_score);
+CREATE INDEX IF NOT EXISTS idx_candidates_communication_score ON candidates(communication_score);
 CREATE INDEX IF NOT EXISTS idx_evaluations_candidate_id ON evaluations(candidate_id);
 CREATE INDEX IF NOT EXISTS idx_notes_candidate_id ON notes(candidate_id);

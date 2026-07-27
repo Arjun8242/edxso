@@ -12,15 +12,15 @@ export async function createCandidate(req, res, next) {
     const input = Array.isArray(req.body) ? req.body : [req.body];
 
     if (input.length === 0) {
-      throw new AppError("Request body must contain at least one candidate", 400);
+      throw new AppError("Request body must contain at least one candidate", 400, "EMPTY_BODY");
     }
 
-    // Validate all candidates before inserting any
+    // Validate all candidates before inserting any (all-or-nothing per PRD §6.1)
     input.forEach((candidate, index) => {
       try {
         validateCandidate(candidate);
       } catch (err) {
-        throw new AppError(`Candidate at index ${index}: ${err.message}`, 400);
+        throw new AppError(`Candidate at index ${index}: ${err.message}`, 400, err.code, err.field);
       }
     });
 
@@ -35,7 +35,7 @@ export async function createCandidate(req, res, next) {
          RETURNING *`,
         [
           c.name.trim(),
-          c.college.trim(),
+          c.college ? c.college.trim() : null,
           c.assignment_score,
           c.video_score,
           c.ats_score,
@@ -62,8 +62,9 @@ export async function createCandidate(req, res, next) {
 
 /**
  * GET /api/candidates
- * List candidates with cursor-based sliding-window pagination,
- * filtering, and sorting.
+ * List candidates with page/page_size pagination,
+ * operator-based filtering, and sorting.
+ * PRD §6.2
  */
 export async function getCandidates(req, res, next) {
   try {
@@ -72,24 +73,14 @@ export async function getCandidates(req, res, next) {
     const conditions = [];
     let paramIndex = 1;
 
-    // Cursor-based pagination (sliding window)
-    if (params.cursor !== undefined) {
-      if (params.order === "desc") {
-        conditions.push(`id < $${paramIndex}`);
-      } else {
-        conditions.push(`id > $${paramIndex}`);
-      }
-      values.push(params.cursor);
+    // ── Operator-based numeric filters (PRD §6.2) ──
+    for (const filter of params.filters) {
+      conditions.push(`${filter.field} ${filter.operator} $${paramIndex}`);
+      values.push(filter.value);
       paramIndex++;
     }
 
-    // Filters
-    if (params.min_assignment_score !== undefined) {
-      conditions.push(`assignment_score >= $${paramIndex}`);
-      values.push(params.min_assignment_score);
-      paramIndex++;
-    }
-
+    // ── Exact-match filters ──
     if (params.status) {
       conditions.push(`status = $${paramIndex}`);
       values.push(params.status);
@@ -111,25 +102,33 @@ export async function getCandidates(req, res, next) {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const sortClause = `ORDER BY ${params.sort_by} ${params.order.toUpperCase()}, id ${params.order.toUpperCase()}`;
 
-    // Fetch one extra to determine if there are more results
+    // ── Total count (PRD §6.2: "Response includes total count") ──
+    const countQuery = `SELECT COUNT(*) AS total FROM candidates ${whereClause}`;
+    const countResult = await pool.query(countQuery, values.slice(0, paramIndex - 1));
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    // ── Page/page_size pagination (PRD §6.2) ──
+    const offset = (params.page - 1) * params.page_size;
     const limitClause = `LIMIT $${paramIndex}`;
-    values.push(params.limit + 1);
+    values.push(params.page_size);
+    paramIndex++;
 
-    const query = `SELECT * FROM candidates ${whereClause} ${sortClause} ${limitClause}`;
+    const offsetClause = `OFFSET $${paramIndex}`;
+    values.push(offset);
+
+    const query = `SELECT * FROM candidates ${whereClause} ${sortClause} ${limitClause} ${offsetClause}`;
     const result = await pool.query(query, values);
-
-    const hasMore = result.rows.length > params.limit;
-    const data = hasMore ? result.rows.slice(0, params.limit) : result.rows;
-    const nextCursor = hasMore && data.length > 0 ? data[data.length - 1].id : null;
 
     res.json({
       success: true,
-      data,
+      data: result.rows,
       pagination: {
-        limit: params.limit,
-        next_cursor: nextCursor,
-        has_more: hasMore,
-        returned: data.length,
+        total,
+        page: params.page,
+        page_size: params.page_size,
+        total_pages: Math.ceil(total / params.page_size),
+        has_more: offset + result.rows.length < total,
+        returned: result.rows.length,
       },
     });
   } catch (err) {
@@ -139,7 +138,9 @@ export async function getCandidates(req, res, next) {
 
 /**
  * GET /api/candidates/:id
- * Get a single candidate with their evaluations and notes.
+ * Get a single candidate, optionally with evaluations and notes.
+ * PRD §6.3: "Returns candidate + optionally embedded latest evaluation
+ *            and notes (via ?include=evaluations,notes)"
  */
 export async function getCandidateById(req, res, next) {
   try {
@@ -147,32 +148,41 @@ export async function getCandidateById(req, res, next) {
     const candidateId = parseInt(id, 10);
 
     if (isNaN(candidateId)) {
-      throw new AppError("Candidate ID must be a valid integer", 400);
+      throw new AppError("Candidate ID must be a valid integer", 400, "INVALID_INPUT", "id");
     }
 
     const candidateResult = await pool.query("SELECT * FROM candidates WHERE id = $1", [candidateId]);
 
     if (candidateResult.rows.length === 0) {
-      throw new AppError(`Candidate with id ${candidateId} not found`, 404);
+      throw new AppError(`Candidate with id ${candidateId} not found`, 404, "NOT_FOUND", "id");
     }
 
-    const evaluationsResult = await pool.query(
-      "SELECT * FROM evaluations WHERE candidate_id = $1 ORDER BY created_at DESC",
-      [candidateId]
-    );
+    const data = { ...candidateResult.rows[0] };
 
-    const notesResult = await pool.query(
-      "SELECT * FROM notes WHERE candidate_id = $1 ORDER BY timestamp DESC",
-      [candidateId]
-    );
+    // Parse ?include= param (PRD §6.3)
+    const include = req.query.include
+      ? req.query.include.split(",").map((s) => s.trim().toLowerCase())
+      : [];
+
+    if (include.includes("evaluations")) {
+      const evaluationsResult = await pool.query(
+        "SELECT * FROM evaluations WHERE candidate_id = $1 ORDER BY created_at DESC",
+        [candidateId]
+      );
+      data.evaluations = evaluationsResult.rows;
+    }
+
+    if (include.includes("notes")) {
+      const notesResult = await pool.query(
+        "SELECT * FROM notes WHERE candidate_id = $1 ORDER BY timestamp DESC",
+        [candidateId]
+      );
+      data.notes = notesResult.rows;
+    }
 
     res.json({
       success: true,
-      data: {
-        ...candidateResult.rows[0],
-        evaluations: evaluationsResult.rows,
-        notes: notesResult.rows,
-      },
+      data,
     });
   } catch (err) {
     next(err);
@@ -187,12 +197,12 @@ export async function updateCandidateById(req, res, next) {
   try {
     const candidateId = parseInt(req.params.id, 10);
     if (isNaN(candidateId)) {
-      throw new AppError("Candidate ID must be a valid integer", 400);
+      throw new AppError("Candidate ID must be a valid integer", 400, "INVALID_INPUT", "id");
     }
 
     const existing = await pool.query("SELECT * FROM candidates WHERE id = $1", [candidateId]);
     if (existing.rows.length === 0) {
-      throw new AppError(`Candidate with id ${candidateId} not found`, 404);
+      throw new AppError(`Candidate with id ${candidateId} not found`, 404, "NOT_FOUND", "id");
     }
 
     const current = existing.rows[0];
@@ -205,12 +215,13 @@ export async function updateCandidateById(req, res, next) {
     const communication_score = b.communication_score !== undefined ? b.communication_score : (b.communicationScore !== undefined ? b.communicationScore : current.communication_score);
     const status = b.status || current.status;
 
+    // Ensure numeric conversion from NUMERIC columns
     const { score, bucket } = calculatePriority({
-      assignment_score,
-      video_score,
-      ats_score,
-      github_score,
-      communication_score,
+      assignment_score: Number(assignment_score),
+      video_score: Number(video_score),
+      ats_score: Number(ats_score),
+      github_score: Number(github_score),
+      communication_score: Number(communication_score),
     });
 
     const updateResult = await pool.query(

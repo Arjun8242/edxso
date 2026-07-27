@@ -2,8 +2,8 @@ import pool from "../config/db.js";
 
 /**
  * GET /api/dashboard-summary
- * Returns aggregate counts: total, reviewed, shortlisted, pending,
- * and breakdown by priority bucket.
+ * PRD §6.6: Returns total_candidates, reviewed_count,
+ * shortlisted_count, pending_count, and breakdown by priority bucket.
  */
 export async function getDashboardSummary(req, res, next) {
   try {
@@ -41,13 +41,14 @@ export async function getDashboardSummary(req, res, next) {
       bucketMap[row.priority_bucket] = parseInt(row.count, 10);
     }
 
+    // PRD §6.6: Keys must be total_candidates, reviewed_count, shortlisted_count, pending_count
     res.json({
       success: true,
       data: {
         total_candidates: parseInt(totalResult.rows[0].count, 10),
-        reviewed: statusMap.reviewed,
-        shortlisted: statusMap.shortlisted,
-        pending: statusMap.pending,
+        reviewed_count: statusMap.reviewed,
+        shortlisted_count: statusMap.shortlisted,
+        pending_count: statusMap.pending,
         by_priority: bucketMap,
       },
     });

@@ -3,22 +3,22 @@ import AppError from "../utils/AppError.js";
 import { validateNote } from "../middleware/validate.js";
 
 /**
- * POST /api/notes/:candidate_id
+ * POST /api/candidates/:id/notes
  * Add a reviewer note for a candidate.
  */
 export async function createNote(req, res, next) {
   try {
-    const candidateId = parseInt(req.params.candidate_id, 10);
+    const candidateId = parseInt(req.params.id, 10);
 
     if (isNaN(candidateId)) {
-      throw new AppError("candidate_id must be a valid integer", 400);
+      throw new AppError("candidate_id must be a valid integer", 400, "INVALID_INPUT", "id");
     }
 
     // Check candidate exists
     const candidateResult = await pool.query("SELECT id FROM candidates WHERE id = $1", [candidateId]);
 
     if (candidateResult.rows.length === 0) {
-      throw new AppError(`Candidate with id ${candidateId} not found`, 404);
+      throw new AppError(`Candidate with id ${candidateId} not found`, 404, "NOT_FOUND", "id");
     }
 
     // Validate note
@@ -44,22 +44,22 @@ export async function createNote(req, res, next) {
 }
 
 /**
- * GET /api/notes/:candidate_id
+ * GET /api/candidates/:id/notes
  * Get all reviewer notes for a candidate, newest first.
  */
 export async function getNotesByCandidate(req, res, next) {
   try {
-    const candidateId = parseInt(req.params.candidate_id, 10);
+    const candidateId = parseInt(req.params.id, 10);
 
     if (isNaN(candidateId)) {
-      throw new AppError("candidate_id must be a valid integer", 400);
+      throw new AppError("candidate_id must be a valid integer", 400, "INVALID_INPUT", "id");
     }
 
     // Check candidate exists
     const candidateResult = await pool.query("SELECT id FROM candidates WHERE id = $1", [candidateId]);
 
     if (candidateResult.rows.length === 0) {
-      throw new AppError(`Candidate with id ${candidateId} not found`, 404);
+      throw new AppError(`Candidate with id ${candidateId} not found`, 404, "NOT_FOUND", "id");
     }
 
     const result = await pool.query(
